@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Integration & Architecture - Interactive Quiz</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 1.1em; }
+        .progress-bar {
+            width: 100%; height: 8px; background: #e0e0e0; position: relative;
+        }
+        .progress-fill {
+            height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%; transition: width 0.5s ease;
+        }
+        .quiz-body { padding: 30px; }
+        .question-card {
+            background: #f8f9fa; border-radius: 15px; padding: 25px;
+            margin-bottom: 20px; border-left: 5px solid #667eea;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .question-card:hover {
+            transform: translateX(5px); box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .question-number {
+            display: inline-block; background: #667eea; color: white;
+            width: 35px; height: 35px; border-radius: 50%;
+            text-align: center; line-height: 35px; font-weight: bold; margin-right: 10px;
+        }
+        .question-type {
+            display: inline-block; background: #e3f2fd; color: #1976d2;
+            padding: 3px 12px; border-radius: 20px; font-size: 0.85em;
+            margin-left: 10px; font-weight: 600;
+        }
+        .question-text {
+            font-size: 1.15em; color: #333; margin: 15px 0; line-height: 1.5;
+        }
+        .options { margin-top: 15px; }
+        .option {
+            display: flex; align-items: center; padding: 12px 15px; margin: 8px 0;
+            background: white; border: 2px solid #e0e0e0; border-radius: 10px;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .option:hover { border-color: #667eea; background: #f0f4ff; }
+        .option input[type="radio"], .option input[type="checkbox"] {
+            width: 20px; height: 20px; margin-right: 12px; cursor: pointer; flex-shrink: 0;
+        }
+        .option-text { font-size: 1em; color: #444; }
+        .identification-input {
+            width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0;
+            border-radius: 10px; font-size: 1em; margin-top: 10px;
+            transition: border-color 0.3s;
+        }
+        .identification-input:focus { outline: none; border-color: #667eea; }
+        .btn-container { text-align: center; padding: 30px; }
+        .btn-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border: none; padding: 15px 50px; font-size: 1.2em;
+            border-radius: 50px; cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s; font-weight: 600;
+        }
+        .btn-submit:hover {
+            transform: translateY(-3px); box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        .results { display: none; padding: 30px; text-align: center; }
+        .score-circle {
+            width: 200px; height: 200px; border-radius: 50%;
+            background: conic-gradient(#4CAF50 var(--score-deg), #e0e0e0 var(--score-deg));
+            margin: 20px auto; display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .score-circle::before {
+            content: ''; width: 160px; height: 160px; background: white;
+            border-radius: 50%; position: absolute;
+        }
+        .score-text { position: relative; z-index: 1; font-size: 3em; font-weight: bold; color: #333; }
+        .feedback { margin-top: 20px; padding: 20px; border-radius: 15px; font-size: 1.1em; }
+        .feedback.excellent { background: #e8f5e9; color: #2e7d32; }
+        .feedback.good { background: #fff3e0; color: #ef6c00; }
+        .feedback.needs-work { background: #ffebee; color: #c62828; }
+        .answer-review { text-align: left; margin-top: 30px; }
+        .review-item { padding: 15px; margin: 10px 0; border-radius: 10px; }
+        .review-item.correct { background: #e8f5e9; border-left: 4px solid #4CAF50; }
+        .review-item.incorrect { background: #ffebee; border-left: 4px solid #f44336; }
+        .correct-answer { color: #2e7d32; font-weight: 600; }
+        .wrong-answer { color: #c62828; text-decoration: line-through; }
+        .btn-retry {
+            background: #2196F3; color: white; border: none; padding: 12px 40px;
+            font-size: 1em; border-radius: 50px; cursor: pointer; margin-top: 20px;
+            transition: transform 0.3s;
+        }
+        .btn-retry:hover { transform: translateY(-2px); }
+        @media (max-width: 600px) {
+            .header h1 { font-size: 1.5em; }
+            .question-card { padding: 15px; }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>System Integration & Architecture</h1>
+            <p>Interactive Quiz | 55 Questions | Lessons 1-6</p>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div id="quizForm">
+            <div class="quiz-body" id="quizBody">
+
+<!-- ==================== MULTIPLE CHOICE (25 questions) ==================== -->
+
+<div class="question-card" data-type="mc" data-answer="B">
+    <span class="question-number">1</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What is System Integration?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q1" value="A"><span class="option-text">A. Building standalone applications</span></label>
+        <label class="option"><input type="radio" name="q1" value="B"><span class="option-text">B. Connecting different subsystems to function as one unified system</span></label>
+        <label class="option"><input type="radio" name="q1" value="C"><span class="option-text">C. Creating separate databases for each department</span></label>
+        <label class="option"><input type="radio" name="q1" value="D"><span class="option-text">D. Designing hardware components only</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="C">
+    <span class="question-number">2</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which component of an Information System refers to the physical devices?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q2" value="A"><span class="option-text">A. Software</span></label>
+        <label class="option"><input type="radio" name="q2" value="B"><span class="option-text">B. Data</span></label>
+        <label class="option"><input type="radio" name="q2" value="C"><span class="option-text">C. Hardware</span></label>
+        <label class="option"><input type="radio" name="q2" value="D"><span class="option-text">D. Network</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="D">
+    <span class="question-number">3</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What type of integration connects systems based on specific functional areas or departments?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q3" value="A"><span class="option-text">A. Horizontal Integration</span></label>
+        <label class="option"><input type="radio" name="q3" value="B"><span class="option-text">B. Enterprise Application Integration</span></label>
+        <label class="option"><input type="radio" name="q3" value="C"><span class="option-text">C. Data Integration</span></label>
+        <label class="option"><input type="radio" name="q3" value="D"><span class="option-text">D. Vertical Integration</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="A">
+    <span class="question-number">4</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which integration type uses a common communication bus (middleware) to integrate systems?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q4" value="A"><span class="option-text">A. Horizontal Integration</span></label>
+        <label class="option"><input type="radio" name="q4" value="B"><span class="option-text">B. Vertical Integration</span></label>
+        <label class="option"><input type="radio" name="q4" value="C"><span class="option-text">C. Point-to-Point Integration</span></label>
+        <label class="option"><input type="radio" name="q4" value="D"><span class="option-text">D. Silo Integration</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="B">
+    <span class="question-number">5</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">In Point-to-Point Integration, how many connections exist between 4 systems?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q5" value="A"><span class="option-text">A. 4 connections</span></label>
+        <label class="option"><input type="radio" name="q5" value="B"><span class="option-text">B. 6 connections</span></label>
+        <label class="option"><input type="radio" name="q5" value="C"><span class="option-text">C. 8 connections</span></label>
+        <label class="option"><input type="radio" name="q5" value="D"><span class="option-text">D. 10 connections</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="C">
+    <span class="question-number">6</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What does Logical Architecture focus on?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q6" value="A"><span class="option-text">A. Actual hardware and servers</span></label>
+        <label class="option"><input type="radio" name="q6" value="B"><span class="option-text">B. Network cables and data centers</span></label>
+        <label class="option"><input type="radio" name="q6" value="C"><span class="option-text">C. System functions, components, and data flow</span></label>
+        <label class="option"><input type="radio" name="q6" value="D"><span class="option-text">D. Physical location of equipment</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="A">
+    <span class="question-number">7</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which architecture has all processing handled by a single central server?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q7" value="A"><span class="option-text">A. Centralized Architecture</span></label>
+        <label class="option"><input type="radio" name="q7" value="B"><span class="option-text">B. Distributed Architecture</span></label>
+        <label class="option"><input type="radio" name="q7" value="C"><span class="option-text">C. Hybrid Architecture</span></label>
+        <label class="option"><input type="radio" name="q7" value="D"><span class="option-text">D. Microservices Architecture</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="B">
+    <span class="question-number">8</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What is a major disadvantage of Centralized Architecture?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q8" value="A"><span class="option-text">A. Complex management</span></label>
+        <label class="option"><input type="radio" name="q8" value="B"><span class="option-text">B. Single point of failure</span></label>
+        <label class="option"><input type="radio" name="q8" value="C"><span class="option-text">C. Network dependency</span></label>
+        <label class="option"><input type="radio" name="q8" value="D"><span class="option-text">D. Security challenges</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="C">
+    <span class="question-number">9</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which architecture combines centralized and distributed elements?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q9" value="A"><span class="option-text">A. Service-Oriented Architecture</span></label>
+        <label class="option"><input type="radio" name="q9" value="B"><span class="option-text">B. Event-Driven Architecture</span></label>
+        <label class="option"><input type="radio" name="q9" value="C"><span class="option-text">C. Hybrid Architecture</span></label>
+        <label class="option"><input type="radio" name="q9" value="D"><span class="option-text">D. Point-to-Point Architecture</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="B">
+    <span class="question-number">10</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What principle refers to dividing a system into smaller, independent parts?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q10" value="A"><span class="option-text">A. Scalability</span></label>
+        <label class="option"><input type="radio" name="q10" value="B"><span class="option-text">B. Modularity</span></label>
+        <label class="option"><input type="radio" name="q10" value="C"><span class="option-text">C. Reliability</span></label>
+        <label class="option"><input type="radio" name="q10" value="D"><span class="option-text">D. Interoperability</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="A">
+    <span class="question-number">11</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which type of scalability involves adding more servers?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q11" value="A"><span class="option-text">A. Horizontal Scaling</span></label>
+        <label class="option"><input type="radio" name="q11" value="B"><span class="option-text">B. Vertical Scaling</span></label>
+        <label class="option"><input type="radio" name="q11" value="C"><span class="option-text">C. Diagonal Scaling</span></label>
+        <label class="option"><input type="radio" name="q11" value="D"><span class="option-text">D. Linear Scaling</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="C">
+    <span class="question-number">12</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What does RBAC stand for?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q12" value="A"><span class="option-text">A. Resource-Based Access Control</span></label>
+        <label class="option"><input type="radio" name="q12" value="B"><span class="option-text">B. Rule-Based Access Control</span></label>
+        <label class="option"><input type="radio" name="q12" value="C"><span class="option-text">C. Role-Based Access Control</span></label>
+        <label class="option"><input type="radio" name="q12" value="D"><span class="option-text">D. Request-Based Access Control</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="B">
+    <span class="question-number">13</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which authentication method issues a token after login instead of repeatedly asking for credentials?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q13" value="A"><span class="option-text">A. OAuth/SSO</span></label>
+        <label class="option"><input type="radio" name="q13" value="B"><span class="option-text">B. JWT (JSON Web Tokens)</span></label>
+        <label class="option"><input type="radio" name="q13" value="C"><span class="option-text">C. ABAC</span></label>
+        <label class="option"><input type="radio" name="q13" value="D"><span class="option-text">D. RBAC</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="D">
+    <span class="question-number">14</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What is a data silo?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q14" value="A"><span class="option-text">A. A cloud storage solution</span></label>
+        <label class="option"><input type="radio" name="q14" value="B"><span class="option-text">B. A type of database encryption</span></label>
+        <label class="option"><input type="radio" name="q14" value="C"><span class="option-text">C. A network security protocol</span></label>
+        <label class="option"><input type="radio" name="q14" value="D"><span class="option-text">D. Isolated data within one department not shared across the organization</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="A">
+    <span class="question-number">15</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which security measure protects data while it is moving between systems?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q15" value="A"><span class="option-text">A. HTTPS/TLS</span></label>
+        <label class="option"><input type="radio" name="q15" value="B"><span class="option-text">B. Database encryption</span></label>
+        <label class="option"><input type="radio" name="q15" value="C"><span class="option-text">C. Firewall</span></label>
+        <label class="option"><input type="radio" name="q15" value="D"><span class="option-text">D. API Gateway</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="C">
+    <span class="question-number">16</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What does Physical Architecture show?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q16" value="A"><span class="option-text">A. System functions and data flow</span></label>
+        <label class="option"><input type="radio" name="q16" value="B"><span class="option-text">B. Business logic and processing rules</span></label>
+        <label class="option"><input type="radio" name="q16" value="C"><span class="option-text">C. Servers, computers, network devices, and data centers</span></label>
+        <label class="option"><input type="radio" name="q16" value="D"><span class="option-text">D. User interfaces and screens</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="B">
+    <span class="question-number">17</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which is an advantage of Distributed Architecture?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q17" value="A"><span class="option-text">A. Easier maintenance</span></label>
+        <label class="option"><input type="radio" name="q17" value="B"><span class="option-text">B. High scalability</span></label>
+        <label class="option"><input type="radio" name="q17" value="C"><span class="option-text">C. Simplified backup</span></label>
+        <label class="option"><input type="radio" name="q17" value="D"><span class="option-text">D. Central control</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="A">
+    <span class="question-number">18</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What is the main purpose of an API Gateway?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q18" value="A"><span class="option-text">A. Secure and manage API traffic</span></label>
+        <label class="option"><input type="radio" name="q18" value="B"><span class="option-text">B. Replace databases</span></label>
+        <label class="option"><input type="radio" name="q18" value="C"><span class="option-text">C. Design user interfaces</span></label>
+        <label class="option"><input type="radio" name="q18" value="D"><span class="option-text">D. Create physical networks</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="D">
+    <span class="question-number">19</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which access control model uses attributes like time, location, and device?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q19" value="A"><span class="option-text">A. RBAC</span></label>
+        <label class="option"><input type="radio" name="q19" value="B"><span class="option-text">B. JWT</span></label>
+        <label class="option"><input type="radio" name="q19" value="C"><span class="option-text">C. OAuth</span></label>
+        <label class="option"><input type="radio" name="q19" value="D"><span class="option-text">D. ABAC</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="B">
+    <span class="question-number">20</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What does SSO stand for?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q20" value="A"><span class="option-text">A. Secure System Operation</span></label>
+        <label class="option"><input type="radio" name="q20" value="B"><span class="option-text">B. Single Sign-On</span></label>
+        <label class="option"><input type="radio" name="q20" value="C"><span class="option-text">C. System Security Override</span></label>
+        <label class="option"><input type="radio" name="q20" value="D"><span class="option-text">D. Shared Service Organization</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="C">
+    <span class="question-number">21</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which optimization method stores frequently accessed data in memory for faster retrieval?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q21" value="A"><span class="option-text">A. Load balancing</span></label>
+        <label class="option"><input type="radio" name="q21" value="B"><span class="option-text">B. Data replication</span></label>
+        <label class="option"><input type="radio" name="q21" value="C"><span class="option-text">C. Caching (Redis)</span></label>
+        <label class="option"><input type="radio" name="q21" value="D"><span class="option-text">D. Failover</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="A">
+    <span class="question-number">22</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What is the 4-Layer Defense Model's first layer?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q22" value="A"><span class="option-text">A. Protect the Data (Encryption)</span></label>
+        <label class="option"><input type="radio" name="q22" value="B"><span class="option-text">B. Protect the Access (API Security)</span></label>
+        <label class="option"><input type="radio" name="q22" value="C"><span class="option-text">C. Protect the Network (Firewalls, VPNs)</span></label>
+        <label class="option"><input type="radio" name="q22" value="D"><span class="option-text">D. Watch Everything (Logging & Monitoring)</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="B">
+    <span class="question-number">23</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which is a common cause of data leakage between systems?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q23" value="A"><span class="option-text">A. Strong encryption</span></label>
+        <label class="option"><input type="radio" name="q23" value="B"><span class="option-text">B. Poor API design</span></label>
+        <label class="option"><input type="radio" name="q23" value="C"><span class="option-text">C. Multi-factor authentication</span></label>
+        <label class="option"><input type="radio" name="q23" value="D"><span class="option-text">D. Rate limiting</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="D">
+    <span class="question-number">24</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">What does "Authentication" answer?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q24" value="A"><span class="option-text">A. What can you do?</span></label>
+        <label class="option"><input type="radio" name="q24" value="B"><span class="option-text">B. Where is the data?</span></label>
+        <label class="option"><input type="radio" name="q24" value="C"><span class="option-text">C. How fast is the system?</span></label>
+        <label class="option"><input type="radio" name="q24" value="D"><span class="option-text">D. Who are you?</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="mc" data-answer="A">
+    <span class="question-number">25</span>
+    <span class="question-type">Multiple Choice</span>
+    <div class="question-text">Which trade-off occurs when increasing security?</div>
+    <div class="options">
+        <label class="option"><input type="radio" name="q25" value="A"><span class="option-text">A. May reduce performance (e.g., encryption overhead)</span></label>
+        <label class="option"><input type="radio" name="q25" value="B"><span class="option-text">B. Automatically improves scalability</span></label>
+        <label class="option"><input type="radio" name="q25" value="C"><span class="option-text">C. Has no effect on other factors</span></label>
+        <label class="option"><input type="radio" name="q25" value="D"><span class="option-text">D. Increases system speed</span></label>
+    </div>
+</div>
+
+<!-- ==================== IDENTIFICATION (15 questions) ==================== -->
+
+<div class="question-card" data-type="id" data-answer="modularity">
+    <span class="question-number">26</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">Architecture principle that means dividing a system into smaller, independent parts called modules.</div>
+    <input type="text" class="identification-input" name="q26" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="scalability">
+    <span class="question-number">27</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">The ability of a system to handle growth in users, data, or workload.</div>
+    <input type="text" class="identification-input" name="q27" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="reliability">
+    <span class="question-number">28</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">The principle that ensures a system consistently works without failure.</div>
+    <input type="text" class="identification-input" name="q28" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="maintainability">
+    <span class="question-number">29</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">Refers to how easy it is to update, fix, or improve a system.</div>
+    <input type="text" class="identification-input" name="q29" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="interoperability">
+    <span class="question-number">30</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">The ability of systems to communicate and work together.</div>
+    <input type="text" class="identification-input" name="q30" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="security">
+    <span class="question-number">31</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">The principle that ensures protection of system data and resources from unauthorized access.</div>
+    <input type="text" class="identification-input" name="q31" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="system integration">
+    <span class="question-number">32</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">The process of connecting different subsystems, applications, or components so they function together as one unified system.</div>
+    <input type="text" class="identification-input" name="q32" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="system architecture">
+    <span class="question-number">33</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">The conceptual design that defines the structure, components, relationships, and rules governing system interaction.</div>
+    <input type="text" class="identification-input" name="q33" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="data silo">
+    <span class="question-number">34</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">Occurs when data is isolated within one department or system and is not shared across the organization.</div>
+    <input type="text" class="identification-input" name="q34" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="middleware">
+    <span class="question-number">35</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">Software that acts as a bridge between systems, handling data transformation and messaging.</div>
+    <input type="text" class="identification-input" name="q35" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="authentication">
+    <span class="question-number">36</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">The process that verifies the identity of a user or system (answers "Who are you?").</div>
+    <input type="text" class="identification-input" name="q36" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="authorization">
+    <span class="question-number">37</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">The process that determines what access level a verified user has (answers "What can you do?").</div>
+    <input type="text" class="identification-input" name="q37" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="failover">
+    <span class="question-number">38</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">A mechanism that automatically switches to a backup system when the primary system fails.</div>
+    <input type="text" class="identification-input" name="q38" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="encryption">
+    <span class="question-number">39</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">The process of converting data into a coded form to prevent unauthorized access.</div>
+    <input type="text" class="identification-input" name="q39" placeholder="Type your answer here...">
+</div>
+
+<div class="question-card" data-type="id" data-answer="load balancing">
+    <span class="question-number">40</span>
+    <span class="question-type">Identification</span>
+    <div class="question-text">A technique that distributes incoming network traffic across multiple servers to prevent any single server from being overwhelmed.</div>
+    <input type="text" class="identification-input" name="q40" placeholder="Type your answer here...">
+</div>
+
+<!-- ==================== ENUMERATION / CHECKBOX (15 questions) ==================== -->
+
+<div class="question-card" data-type="enum" data-answer="A,B,C">
+    <span class="question-number">41</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are the six Core Architecture Principles? (Select three from the list)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q41" value="A"><span class="option-text">A. Modularity</span></label>
+        <label class="option"><input type="checkbox" name="q41" value="B"><span class="option-text">B. Scalability</span></label>
+        <label class="option"><input type="checkbox" name="q41" value="C"><span class="option-text">C. Security</span></label>
+        <label class="option"><input type="checkbox" name="q41" value="D"><span class="option-text">D. Profitability</span></label>
+        <label class="option"><input type="checkbox" name="q41" value="E"><span class="option-text">E. Marketing</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="A,B,D">
+    <span class="question-number">42</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">What are the components of an Information System? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q42" value="A"><span class="option-text">A. Hardware</span></label>
+        <label class="option"><input type="checkbox" name="q42" value="B"><span class="option-text">B. Software</span></label>
+        <label class="option"><input type="checkbox" name="q42" value="C"><span class="option-text">C. Profit</span></label>
+        <label class="option"><input type="checkbox" name="q42" value="D"><span class="option-text">D. Networks</span></label>
+        <label class="option"><input type="checkbox" name="q42" value="E"><span class="option-text">E. Competitors</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="B,C,D">
+    <span class="question-number">43</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are types of System Integration? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q43" value="A"><span class="option-text">A. Circular Integration</span></label>
+        <label class="option"><input type="checkbox" name="q43" value="B"><span class="option-text">B. Vertical Integration</span></label>
+        <label class="option"><input type="checkbox" name="q43" value="C"><span class="option-text">C. Horizontal Integration</span></label>
+        <label class="option"><input type="checkbox" name="q43" value="D"><span class="option-text">D. Enterprise Application Integration (EAI)</span></label>
+        <label class="option"><input type="checkbox" name="q43" value="E"><span class="option-text">E. Random Integration</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="A,C,E">
+    <span class="question-number">44</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are common integration architectures? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q44" value="A"><span class="option-text">A. Point-to-Point Integration</span></label>
+        <label class="option"><input type="checkbox" name="q44" value="B"><span class="option-text">B. Star Integration</span></label>
+        <label class="option"><input type="checkbox" name="q44" value="C"><span class="option-text">C. Service-Oriented Architecture (SOA)</span></label>
+        <label class="option"><input type="checkbox" name="q44" value="D"><span class="option-text">D. Pyramid Architecture</span></label>
+        <label class="option"><input type="checkbox" name="q44" value="E"><span class="option-text">E. Microservices Architecture</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="B,D,E">
+    <span class="question-number">45</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">What are the three types of interoperability? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q45" value="A"><span class="option-text">A. Financial Interoperability</span></label>
+        <label class="option"><input type="checkbox" name="q45" value="B"><span class="option-text">B. Technical Interoperability</span></label>
+        <label class="option"><input type="checkbox" name="q45" value="C"><span class="option-text">C. Color Interoperability</span></label>
+        <label class="option"><input type="checkbox" name="q45" value="D"><span class="option-text">D. Semantic Interoperability</span></label>
+        <label class="option"><input type="checkbox" name="q45" value="E"><span class="option-text">E. Organizational Interoperability</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="A,B,C">
+    <span class="question-number">46</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are major integration challenges? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q46" value="A"><span class="option-text">A. Legacy Systems</span></label>
+        <label class="option"><input type="checkbox" name="q46" value="B"><span class="option-text">B. Data Incompatibility</span></label>
+        <label class="option"><input type="checkbox" name="q46" value="C"><span class="option-text">C. Security Risks</span></label>
+        <label class="option"><input type="checkbox" name="q46" value="D"><span class="option-text">D. Too much funding</span></label>
+        <label class="option"><input type="checkbox" name="q46" value="E"><span class="option-text">E. Excessive documentation</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="A,C,D">
+    <span class="question-number">47</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are common risks in integrated systems? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q47" value="A"><span class="option-text">A. Data interception</span></label>
+        <label class="option"><input type="checkbox" name="q47" value="B"><span class="option-text">B. Too fast performance</span></label>
+        <label class="option"><input type="checkbox" name="q47" value="C"><span class="option-text">C. Unauthorized system access</span></label>
+        <label class="option"><input type="checkbox" name="q47" value="D"><span class="option-text">D. Data leakage between systems</span></label>
+        <label class="option"><input type="checkbox" name="q47" value="E"><span class="option-text">E. Perfect compatibility</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="B,C,E">
+    <span class="question-number">48</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are security measures for integrated systems? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q48" value="A"><span class="option-text">A. Open APIs without authentication</span></label>
+        <label class="option"><input type="checkbox" name="q48" value="B"><span class="option-text">B. Encryption (HTTPS/TLS)</span></label>
+        <label class="option"><input type="checkbox" name="q48" value="C"><span class="option-text">C. API Gateways</span></label>
+        <label class="option"><input type="checkbox" name="q48" value="D"><span class="option-text">D. Public WiFi for all connections</span></label>
+        <label class="option"><input type="checkbox" name="q48" value="E"><span class="option-text">E. Logging and Monitoring</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="A,B,D">
+    <span class="question-number">49</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are strategies for ensuring reliability? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q49" value="A"><span class="option-text">A. Redundancy (backup systems)</span></label>
+        <label class="option"><input type="checkbox" name="q49" value="B"><span class="option-text">B. Failover mechanisms</span></label>
+        <label class="option"><input type="checkbox" name="q49" value="C"><span class="option-text">C. Using a single server</span></label>
+        <label class="option"><input type="checkbox" name="q49" value="D"><span class="option-text">D. Data replication</span></label>
+        <label class="option"><input type="checkbox" name="q49" value="E"><span class="option-text">E. Ignoring system alerts</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="A,C,E">
+    <span class="question-number">50</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are impacts of data silos? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q50" value="A"><span class="option-text">A. Duplicate data</span></label>
+        <label class="option"><input type="checkbox" name="q50" value="B"><span class="option-text">B. Improved decision-making</span></label>
+        <label class="option"><input type="checkbox" name="q50" value="C"><span class="option-text">C. Inconsistent information</span></label>
+        <label class="option"><input type="checkbox" name="q50" value="D"><span class="option-text">D. Faster reporting</span></label>
+        <label class="option"><input type="checkbox" name="q50" value="E"><span class="option-text">E. Poor decision-making</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="A,B,C">
+    <span class="question-number">51</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are common authentication methods? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q51" value="A"><span class="option-text">A. Username and password</span></label>
+        <label class="option"><input type="checkbox" name="q51" value="B"><span class="option-text">B. Biometrics</span></label>
+        <label class="option"><input type="checkbox" name="q51" value="C"><span class="option-text">C. Multi-Factor Authentication (MFA)</span></label>
+        <label class="option"><input type="checkbox" name="q51" value="D"><span class="option-text">D. Public access without login</span></label>
+        <label class="option"><input type="checkbox" name="q51" value="E"><span class="option-text">E. Guest mode forever</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="B,D,E">
+    <span class="question-number">52</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are factors that affect system performance? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q52" value="A"><span class="option-text">A. Office furniture quality</span></label>
+        <label class="option"><input type="checkbox" name="q52" value="B"><span class="option-text">B. Network latency</span></label>
+        <label class="option"><input type="checkbox" name="q52" value="C"><span class="option-text">C. Wall paint color</span></label>
+        <label class="option"><input type="checkbox" name="q52" value="D"><span class="option-text">D. Database queries</span></label>
+        <label class="option"><input type="checkbox" name="q52" value="E"><span class="option-text">E. API response time</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="A,C,D">
+    <span class="question-number">53</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are layers of the Three-Tier Architecture? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q53" value="A"><span class="option-text">A. Presentation Layer</span></label>
+        <label class="option"><input type="checkbox" name="q53" value="B"><span class="option-text">B. Marketing Layer</span></label>
+        <label class="option"><input type="checkbox" name="q53" value="C"><span class="option-text">C. Application Layer</span></label>
+        <label class="option"><input type="checkbox" name="q53" value="D"><span class="option-text">D. Data Layer</span></label>
+        <label class="option"><input type="checkbox" name="q53" value="E"><span class="option-text">E. Decoration Layer</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="B,C,E">
+    <span class="question-number">54</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are disadvantages of Point-to-Point Integration? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q54" value="A"><span class="option-text">A. Simple for 2-3 systems</span></label>
+        <label class="option"><input type="checkbox" name="q54" value="B"><span class="option-text">B. Hard to scale</span></label>
+        <label class="option"><input type="checkbox" name="q54" value="C"><span class="option-text">C. Difficult maintenance</span></label>
+        <label class="option"><input type="checkbox" name="q54" value="D"><span class="option-text">D. Low initial cost</span></label>
+        <label class="option"><input type="checkbox" name="q54" value="E"><span class="option-text">E. Increased security risks</span></label>
+    </div>
+</div>
+
+<div class="question-card" data-type="enum" data-answer="A,B,D">
+    <span class="question-number">55</span>
+    <span class="question-type">Enumeration (Select all that apply)</span>
+    <div class="question-text">Which are governance challenges in system integration? (Select three)</div>
+    <div class="options">
+        <label class="option"><input type="checkbox" name="q55" value="A"><span class="option-text">A. Who owns the data?</span></label>
+        <label class="option"><input type="checkbox" name="q55" value="B"><span class="option-text">B. Who approves integrations?</span></label>
+        <label class="option"><input type="checkbox" name="q55" value="C"><span class="option-text">C. What color is the server?</span></label>
+        <label class="option"><input type="checkbox" name="q55" value="D"><span class="option-text">D. Who manages APIs?</span></label>
+        <label class="option"><input type="checkbox" name="q55" value="E"><span class="option-text">E. What is the office temperature?</span></label>
+    </div>
+</div>
+
+            </div>
+            <div class="btn-container">
+                <button type="button" class="btn-submit" id="submitBtn">Submit Quiz</button>
+            </div>
+        </div>
+        <div class="results" id="results">
+            <h2>Quiz Results</h2>
+            <div class="score-circle" id="scoreCircle">
+                <span class="score-text" id="scoreText">0/55</span>
+            </div>
+            <div class="feedback" id="feedback"></div>
+            <div class="answer-review" id="answerReview"></div>
+            <button class="btn-retry" id="retryBtn">Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var submitBtn = document.getElementById('submitBtn');
+            var retryBtn = document.getElementById('retryBtn');
+            if (submitBtn) submitBtn.addEventListener('click', submitQuiz);
+            if (retryBtn) retryBtn.addEventListener('click', retryQuiz);
+
+            document.addEventListener('change', function() {
+                var questions = document.querySelectorAll('.question-card');
+                var answered = 0;
+                questions.forEach(function(q) {
+                    var type = q.dataset.type;
+                    if (type === 'mc') {
+                        if (q.querySelector('input[type="radio"]:checked')) answered++;
+                    } else if (type === 'enum') {
+                        if (q.querySelector('input[type="checkbox"]:checked')) answered++;
+                    } else if (type === 'id') {
+                        if (q.querySelector('input[type="text"]').value.trim()) answered++;
+                    }
+                });
+                var percentage = (answered / questions.length) * 100;
+                document.getElementById('progressFill').style.width = percentage + '%';
+            });
+        });
+
+        function submitQuiz() {
+            var questions = document.querySelectorAll('.question-card');
+            var score = 0;
+            var total = questions.length;
+            var reviewHTML = '<h3>Answer Review:</h3>';
+
+            questions.forEach(function(q, index) {
+                var type = q.dataset.type;
+                var correctAnswer = q.dataset.answer;
+                var qNum = index + 1;
+                var userAnswer = '';
+                var isCorrect = false;
+
+                if (type === 'mc') {
+                    var selected = q.querySelector('input[type="radio"]:checked');
+                    userAnswer = selected ? selected.value : 'No answer';
+                    isCorrect = userAnswer === correctAnswer;
+                    var options = q.querySelectorAll('.option');
+                    var correctText = '';
+                    options.forEach(function(opt) {
+                        if (opt.querySelector('input').value === correctAnswer) {
+                            correctText = opt.querySelector('.option-text').textContent;
+                        }
+                    });
+                    reviewHTML += '<div class="review-item ' + (isCorrect ? 'correct' : 'incorrect') + '">' +
+                        '<strong>Question ' + qNum + ':</strong> ' + (isCorrect ? '&#10003; Correct' : '&#10007; Incorrect') + '<br>' +
+                        (!isCorrect ? '<span class="wrong-answer">Your answer: ' + userAnswer + '</span><br>' : '') +
+                        '<span class="correct-answer">Correct answer: ' + correctAnswer + ' - ' + correctText + '</span></div>';
+
+                } else if (type === 'enum') {
+                    var selected = q.querySelectorAll('input[type="checkbox"]:checked');
+                    var userAnswers = Array.from(selected).map(function(cb) { return cb.value; }).sort().join(',');
+                    var correctAnswers = correctAnswer.split(',').sort().join(',');
+                    isCorrect = userAnswers === correctAnswers;
+                    var options = q.querySelectorAll('.option');
+                    var correctText = [];
+                    correctAnswer.split(',').forEach(function(ans) {
+                        options.forEach(function(opt) {
+                            if (opt.querySelector('input').value === ans) {
+                                correctText.push(opt.querySelector('.option-text').textContent);
+                            }
+                        });
+                    });
+                    reviewHTML += '<div class="review-item ' + (isCorrect ? 'correct' : 'incorrect') + '">' +
+                        '<strong>Question ' + qNum + ':</strong> ' + (isCorrect ? '&#10003; Correct' : '&#10007; Incorrect') + '<br>' +
+                        (!isCorrect ? '<span class="wrong-answer">Your selections: ' + (userAnswers || 'None') + '</span><br>' : '') +
+                        '<span class="correct-answer">Correct selections: ' + correctText.join(', ') + '</span></div>';
+
+                } else if (type === 'id') {
+                    var input = q.querySelector('input[type="text"]');
+                    userAnswer = input.value.trim().toLowerCase();
+                    var correctAnswers = correctAnswer.split(',').map(function(a) { return a.trim().toLowerCase(); });
+                    isCorrect = correctAnswers.indexOf(userAnswer) !== -1;
+                    reviewHTML += '<div class="review-item ' + (isCorrect ? 'correct' : 'incorrect') + '">' +
+                        '<strong>Question ' + qNum + ':</strong> ' + (isCorrect ? '&#10003; Correct' : '&#10007; Incorrect') + '<br>' +
+                        (!isCorrect ? '<span class="wrong-answer">Your answer: ' + (userAnswer || 'Empty') + '</span><br>' : '') +
+                        '<span class="correct-answer">Correct answer: ' + correctAnswer + '</span></div>';
+                }
+                if (isCorrect) score++;
+            });
+
+            var percentage = (score / total) * 100;
+            var degrees = (percentage / 100) * 360;
+            document.getElementById('scoreCircle').style.setProperty('--score-deg', degrees + 'deg');
+            document.getElementById('scoreText').textContent = score + '/' + total;
+
+            var feedbackClass = '';
+            var feedbackText = '';
+            if (percentage >= 90) {
+                feedbackClass = 'excellent';
+                feedbackText = 'Outstanding! You have mastered System Integration and Architecture concepts!';
+            } else if (percentage >= 70) {
+                feedbackClass = 'good';
+                feedbackText = 'Good job! You have a solid understanding, but there is room for improvement.';
+            } else {
+                feedbackClass = 'needs-work';
+                feedbackText = 'Keep studying! Review the lessons and try again to improve your score.';
+            }
+
+            var feedbackDiv = document.getElementById('feedback');
+            feedbackDiv.className = 'feedback ' + feedbackClass;
+            feedbackDiv.textContent = feedbackText;
+            document.getElementById('answerReview').innerHTML = reviewHTML;
+            document.getElementById('quizForm').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('progressFill').style.width = '100%';
+            window.scrollTo(0, 0);
+        }
+
+        function retryQuiz() {
+            var radios = document.querySelectorAll('input[type="radio"]');
+            radios.forEach(function(r) { r.checked = false; });
+            var checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(function(c) { c.checked = false; });
+            var texts = document.querySelectorAll('input[type="text"]');
+            texts.forEach(function(t) { t.value = ''; });
+            document.getElementById('quizForm').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('progressFill').style.width = '0%';
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
